@@ -189,6 +189,3 @@ services:
 volumes:
   ollama-data:
 ```
-
-
-All internal references, module paths, and branding are now updated to **MemCortex**.
