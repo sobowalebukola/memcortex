@@ -1,0 +1,57 @@
+services:
+  ollama:
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "ollama serve & 
+      sleep 5 && 
+      ollama pull nomic-embed-text && 
+      wait"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  weaviate:
+    image: semitechnologies/weaviate:1.25.3
+    container_name: weaviate
+    ports:
+      - "6379:8080"
+      - "50051:50051"
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: "./data"
+      DEFAULT_VECTORIZER_MODULE: "none"
+      CLUSTER_HOSTNAME: "node1"
+    volumes:
+      - ./data:/var/lib/weaviate
+
+  go-server:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: go-server
+    ports:
+      - "8080:8080"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - EMBEDDING_MODEL=nomic-embed-text
+      - WEAVIATE_HOST=http://weaviate:8080
+    depends_on:
+      ollama:
+        condition: service_healthy
+      weaviate:
+        condition: service_started
+
+volumes:
+  ollama-data:

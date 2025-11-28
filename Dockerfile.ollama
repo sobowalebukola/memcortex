@@ -1,0 +1,5 @@
+# Base Ollama image
+FROM ollama/ollama:latest
+
+# Start the Ollama server by default
+ENTRYPOINT ["ollama", "serve"]
