@@ -9,6 +9,10 @@ import (
 
 	weaviate "github.com/weaviate/weaviate-go-client/v4/weaviate"
 
+	"os"
+	"strconv"
+
+	"github.com/joho/godotenv"
 	ollama "github.com/sobowalebukola/memcortex/internal/embedder"
 )
 
@@ -19,8 +23,27 @@ type Manager struct {
 	WeaviateClient *weaviate.Client
 }
 
+type MemoryPrompt struct {
+	Text  string `json:"text"`
+	Added string `json:"added"`
+}
+
 func NewManager(store *Store, emb *ollama.EmbeddingClient) *Manager {
-	return &Manager{Store: store, Embedder: emb, TopK: 6}
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("No .env file found, using system environment")
+	}
+
+	topKStr := os.Getenv("TOP_K_MEMORIES")
+	if topKStr == "" {
+		topKStr = "10"
+	}
+	topK, err := strconv.Atoi(topKStr)
+	if err != nil {
+		topK = 10
+	}
+	return &Manager{Store: store, Embedder: emb, TopK: topK}
 }
 
 func (m *Manager) Retrieve(ctx context.Context, userID, query string) ([]Memory, error) {
@@ -52,25 +75,27 @@ func (m *Manager) Save(ctx context.Context, userID, text string) error {
 	return err
 }
 
-func FormatMemoryPrompt(memories []Memory) string {
+func FormatMemoryPrompt(memories []Memory) []MemoryPrompt {
 	if len(memories) == 0 {
-		return ""
+		return []MemoryPrompt{}
 	}
-	sb := strings.Builder{}
-	sb.WriteString("MEMORIES:\n")
+
+	result := make([]MemoryPrompt, 0, len(memories))
+
 	for i, mem := range memories {
 		ts := mem.Timestamp.Format(time.RFC3339)
-		sb.WriteString("- ")
-		sb.WriteString(mem.Text)
-		sb.WriteString(" (added: ")
-		sb.WriteString(ts)
-		sb.WriteString(")\n")
+
+		result = append(result, MemoryPrompt{
+			Text:  mem.Text,
+			Added: ts,
+		})
+
 		if i >= 20 {
 			break
 		}
 	}
-	sb.WriteString("\n")
-	return sb.String()
+
+	return result
 }
 
 type MemoryManager struct {

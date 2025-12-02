@@ -31,7 +31,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create memory store: %v", err)
 	}
-	emb := ollama.NewEmbeddingClient("nomic-embed-text:latest")
+	emb := ollama.NewEmbeddingClient(os.Getenv("EMBEDDING_MODEL"))
 
 	m := memory.NewManager(store, emb)
 

@@ -15,7 +15,8 @@ type MemoryMiddleware struct {
 }
 
 type ChatRequest struct {
-	Message string `json:"message"`
+	Memories []memory.MemoryPrompt `json:"memories"`
+	Message  string                `json:"message"`
 }
 
 type ctxKey string
@@ -52,8 +53,13 @@ func (mw *MemoryMiddleware) Handler(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), MemoriesCtxKey, memories)
 
-		augMessage := memory.FormatMemoryPrompt(memories) + "USER: " + in.Message
-		out := ChatRequest{Message: augMessage}
+		memPrompts := memory.FormatMemoryPrompt(memories)
+
+		out := ChatRequest{
+			Memories: memPrompts,
+			Message:  in.Message,
+		}
+
 		outB, _ := json.Marshal(out)
 
 		r = r.WithContext(ctx)

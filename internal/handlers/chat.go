@@ -14,8 +14,8 @@ type ChatReq struct {
 }
 
 type ChatResp struct {
-	Response     string          `json:"response"`
-	MemoriesUsed []memory.Memory `json:"memories_used"`
+	Response string          `json:"new_message"`
+	Memories []memory.Memory `json:"related_memories"`
 }
 
 type ChatHandler struct {
@@ -40,7 +40,7 @@ func (h *ChatHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response := "LLM ECHO: " + req.Message
+	response := req.Message
 
 	if err := h.Manager.Save(r.Context(), userID, req.Message); err != nil {
 		log.Printf("Failed to save message for user %s: %v", userID, err)
@@ -50,8 +50,8 @@ func (h *ChatHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Saved message for user %s: %s", userID, req.Message)
 	out := ChatResp{
-		Response:     response,
-		MemoriesUsed: memories,
+		Response: response,
+		Memories: memories,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(out)

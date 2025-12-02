@@ -5,7 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"log"
+	"os"
+	"strconv"
+
 	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
@@ -13,10 +18,8 @@ import (
 
 type Memory struct {
 	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
 	Text      string    `json:"text"`
 	Timestamp time.Time `json:"timestamp"`
-	Embedding []float32 `json:"embedding"`
 }
 
 type Store struct {
@@ -92,8 +95,18 @@ func (s *Store) Search(ctx context.Context, queryEmbedding []float64, userID str
 
 	vec := float64ToFloat32Slice(queryEmbedding)
 
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("No .env file found, using system environment")
+	}
+
+	maxMemoryDistance, err := strconv.ParseFloat(os.Getenv("MAX_MEMORY_DISTANCE"), 64)
+	if err != nil || maxMemoryDistance == 0 {
+		maxMemoryDistance = 0.5
+	}
+
 	nearVector := s.Client.GraphQL().NearVectorArgBuilder().
-		WithVector(vec).WithDistance(0.7)
+		WithVector(vec).WithDistance(float32(maxMemoryDistance))
 
 	where := filters.Where().
 		WithPath([]string{"user_id"}).
@@ -108,8 +121,6 @@ func (s *Store) Search(ctx context.Context, queryEmbedding []float64, userID str
 		WithFields(
 			graphql.Field{Name: "text"},
 			graphql.Field{Name: "timestamp"},
-			graphql.Field{Name: "user_id"},
-			graphql.Field{Name: "embedding"},
 			graphql.Field{
 				Name: "_additional",
 				Fields: []graphql.Field{
@@ -152,22 +163,8 @@ func (s *Store) Search(ctx context.Context, queryEmbedding []float64, userID str
 			mem.Text = v
 		}
 
-		if v, ok := obj["user_id"].(string); ok {
-			mem.UserID = v
-		}
-
 		if ts, ok := obj["timestamp"].(float64); ok {
 			mem.Timestamp = time.Unix(int64(ts), 0)
-		}
-
-		if ts, ok := obj["embedding"].([]interface{}); ok {
-			emb := make([]float32, len(ts))
-			for i, val := range ts {
-				if f, ok := val.(float64); ok {
-					emb[i] = float32(f)
-				}
-			}
-			mem.Embedding = emb
 		}
 
 		if add, ok := obj["_additional"].(map[string]interface{}); ok {

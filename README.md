@@ -121,9 +121,12 @@ memcortex/
 ### .env.example
 
 ```
-EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_MODEL=nomic-embed-text
 EMBEDDING_DIM=768
 SERVER_ADDR=:8080
+OLLAMA_ADDR=11434
+MAX_MEMORY_DISTANCE=0.5 // This describes the vector search distance 
+TOP_K_MEMORIES=10
 ```
 
 ---
@@ -138,16 +141,16 @@ services:
       dockerfile: Dockerfile.ollama
     container_name: ollama
     ports:
-      - "11434:11434"
+      - "${OLLAMA_ADDR}:11434"
     restart: unless-stopped
     entrypoint: ["/bin/sh", "-c"]
     command: >
       "ollama serve & 
       sleep 5 && 
-      ollama pull nomic-embed-text && 
+      ollama pull ${EMBEDDING_MODEL} && 
       wait"
     volumes:
-      - ollama-data:/root/.ollama
+      - /root/.ollama
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 10s
@@ -163,19 +166,19 @@ services:
     environment:
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
-      PERSISTENCE_DATA_PATH: "./data"
+      PERSISTENCE_DATA_PATH: "var/lib/weaviate"
       DEFAULT_VECTORIZER_MODULE: "none"
       CLUSTER_HOSTNAME: "node1"
     volumes:
-      - ./data:/var/lib/weaviate
-
+      - /var/lib/weaviate
+    restart: unless-stopped
   go-server:
     build:
       context: ./
       dockerfile: Dockerfile
     container_name: go-server
     ports:
-      - "8080:8080"
+      - "${SERVER_ADDR}:8080"
     environment:
       - OLLAMA_HOST=http://ollama:11434
       - EMBEDDING_MODEL=nomic-embed-text
@@ -185,7 +188,5 @@ services:
         condition: service_healthy
       weaviate:
         condition: service_started
-
-volumes:
-  ollama-data:
+    restart: unless-stopped
 ```
