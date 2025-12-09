@@ -90,7 +90,7 @@ docker-compose up -d --build
 curl -X POST http://localhost:8080/chat \
   -H "Content-Type: application/json" \
   -H "X-User-ID: memcortex-user-x" \
-  -d '{"message":"I need to go to the mall sometimes next week. I was at Shoprite last week."}'
+  -d '{"message":"My preffered memory layer is memcortex."}'
 ```
 Shown below are example requests using Thunderclient (you can use any api client of choice. Remember to set the `X-User-ID` in the headers)
 
