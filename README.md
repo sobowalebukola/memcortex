@@ -27,6 +27,9 @@ MemCortex stores user/application memories as both text and vectors in Weaviate 
 
 This pattern is ideal for building chatbots, agents, and personalization layers that must "remember" details across sessions.
 
+<img width="972" height="321" alt="memcortex drawio" src="https://github.com/user-attachments/assets/51b25a3a-93cd-4e5d-883b-5af99da2627b" />
+
+
 ---
 
 ## Architecture (Mermaid)
@@ -78,6 +81,8 @@ Prereqs:
 ```bash
 docker-compose up -d --build
 ```
+<img width="1399" height="165" alt="Screenshot 2025-12-09 at 10 54 59 PM" src="https://github.com/user-attachments/assets/a7629e4e-ed5c-4955-abca-cbce7dbf09e1" />
+
 
 5. Example request:
 
