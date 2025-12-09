@@ -92,6 +92,8 @@ curl -X POST http://localhost:8080/chat \
   -H "X-User-ID: memcortex-user-x" \
   -d '{"message":"I need to go to the mall sometimes next week. I was at Shoprite last week."}'
 ```
+Shown below are example requests using Thunderclient (you can use any api client of choice. Remember to set the `X-User-ID` in the headers)
+
 <img width="1461" height="727" alt="Screenshot 2025-12-09 at 10 49 32 PM" src="https://github.com/user-attachments/assets/10e21b48-c0fd-4863-bc4c-61dfc9a4f8b0" />
 <img width="1461" height="733" alt="Screenshot 2025-12-09 at 10 49 07 PM" src="https://github.com/user-attachments/assets/9703c179-0a66-4099-8965-2cfd6232365f" />
 <img width="1463" height="732" alt="Screenshot 2025-12-09 at 10 48 45 PM" src="https://github.com/user-attachments/assets/80529175-fbda-4859-90f4-c6e29f31fc92" />
