@@ -92,6 +92,17 @@ curl -X POST http://localhost:8080/chat \
   -H "X-User-ID: memcortex-user-x" \
   -d '{"message":"I need to go to the mall sometimes next week. I was at Shoprite last week."}'
 ```
+<img width="1461" height="727" alt="Screenshot 2025-12-09 at 10 49 32 PM" src="https://github.com/user-attachments/assets/10e21b48-c0fd-4863-bc4c-61dfc9a4f8b0" />
+<img width="1461" height="733" alt="Screenshot 2025-12-09 at 10 49 07 PM" src="https://github.com/user-attachments/assets/9703c179-0a66-4099-8965-2cfd6232365f" />
+<img width="1463" height="732" alt="Screenshot 2025-12-09 at 10 48 45 PM" src="https://github.com/user-attachments/assets/80529175-fbda-4859-90f4-c6e29f31fc92" />
+<img width="1463" height="732" alt="Screenshot 2025-12-09 at 10 48 13 PM" src="https://github.com/user-attachments/assets/3fc418e2-5cee-479b-9b2c-7689b08a3dfd" />
+
+
+<img width="1454" height="724" alt="Screenshot 2025-12-09 at 10 53 23 PM" src="https://github.com/user-attachments/assets/243a53d8-ad78-4d2a-86da-8bd3ff117657" />
+<img width="1463" height="724" alt="Screenshot 2025-12-09 at 10 52 20 PM" src="https://github.com/user-attachments/assets/64a50f36-ac47-45bc-8f40-0cb67d1cb33f" />
+<img width="1457" height="729" alt="Screenshot 2025-12-09 at 10 51 48 PM" src="https://github.com/user-attachments/assets/66536fe8-de24-48d6-8317-cd72bd3a4b3b" />
+<img width="1460" height="731" alt="Screenshot 2025-12-09 at 10 51 23 PM" src="https://github.com/user-attachments/assets/dda80703-5bc6-4cef-917a-867ad535a6df" />
+
 
 The first request will save the memory asynchronously. Later requests will retrieve and inject the memory.
 
