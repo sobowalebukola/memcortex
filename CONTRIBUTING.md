@@ -1,6 +1,6 @@
 # Contributing to MemCortex
 
-Thank you for considering contributing to **MemCortex**! 🎉
+Thank you for considering contributing to **MemCortex**! 
 MemCortex is an open-source, lightweight long-term memory layer for LLMs, built with simplicity and extensibility in mind. Contributions of all forms are welcome — code, documentation, ideas, bug reports, or feature requests.
 
 ---
@@ -31,12 +31,6 @@ cd memcortex
 ```bash
 go mod download
 ```
-
-### 4. Run Tests
-```bash
-go test ./...
-```
-MemCortex emphasizes reliability — please make sure tests pass before opening a PR.
 
 ---
 
