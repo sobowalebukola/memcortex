@@ -1,7 +1,7 @@
 # Contributing to MemCortex
 
 Thank you for considering contributing to **MemCortex**! 
-MemCortex is an open-source, lightweight long-term memory layer for LLMs, built with simplicity and extensibility in mind. Contributions of all forms are welcome — code, documentation, ideas, bug reports, or feature requests.
+MemCortex is an open-source, lightweight long-term memory layer for LLMs, built with simplicity and extensibility in mind. Contributions of all forms are welcome: code, documentation, ideas, bug reports, or feature requests.
 
 ---
 
