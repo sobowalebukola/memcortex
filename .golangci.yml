@@ -1,0 +1,20 @@
+version: "2"
+
+run:
+  timeout: 3m
+  tests: true
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - ineffassign
+    - unused
+    - errcheck
+    - misspell
+    - gocyclo
+    - goconst
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
