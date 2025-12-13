@@ -1,8 +1,8 @@
-# MemCortex
+# Memcortex
 
 **Persistent Memory Layer for LLMs (Memory-RAG)**
 
-MemCortex is a Proof of Concept (PoC) designed to equip conversational agents and LLM applications with persistent, long-term memory. By implementing a Memory-RAG (Retrieval-Augmented Generation) architecture, MemCortex allows agents to transcend context-window limitations, enabling them to recall past interactions and specific data points indefinitely.
+Memcortex is a Proof of Concept (PoC) designed to equip conversational agents and LLM applications with persistent, long-term memory. By implementing a Memory-RAG (Retrieval-Augmented Generation) architecture, Memcortex allows agents to transcend context-window limitations, enabling them to recall past interactions and specific data points indefinitely.
 
 [![Read the Deep Dive on Medium](https://img.shields.io/badge/Medium-Read_The_Article_Here-blue?style=for-the-badge&logo=medium)](https://medium.com/@sobowalebukola/inside-memcortex-a-lightweight-semantic-memory-layer-for-llms-394cf940191a)
 
@@ -19,7 +19,7 @@ MemCortex is a Proof of Concept (PoC) designed to equip conversational agents an
 
 ## Project Overview
 
-MemCortex stores user/application memories as both text and vectors in Weaviate and exposes a memory manager + middleware that:
+Memcortex stores user/application memories as both text and vectors in Weaviate and exposes a memory manager + middleware that:
 
 1. Embeds incoming text using `text-embedding-3-small` embeddings.
 2. Stores memories in a `Memory_idx` class on Weaviate.
