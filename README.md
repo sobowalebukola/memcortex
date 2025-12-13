@@ -4,6 +4,8 @@
 
 MemCortex is a Proof of Concept (PoC) designed to equip conversational agents and LLM applications with persistent, long-term memory. By implementing a Memory-RAG (Retrieval-Augmented Generation) architecture, MemCortex allows agents to transcend context-window limitations, enabling them to recall past interactions and specific data points indefinitely.
 
+[![Read the Deep Dive on Medium](https://img.shields.io/badge/Medium-Read_The_Article_Here-blue?style=for-the-badge&logo=medium)](https://medium.com/@sobowalebukola/inside-memcortex-a-lightweight-semantic-memory-layer-for-llms-394cf940191a)
+
 ---
 
 ## Contents
