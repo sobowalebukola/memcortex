@@ -21,7 +21,7 @@ Memcortex is a Proof of Concept (PoC) designed to equip conversational agents an
 
 Memcortex stores user/application memories as both text and vectors in Weaviate and exposes a memory manager + middleware that:
 
-1. Embeds incoming text using `text-embedding-3-small` embeddings.
+1. Embeds incoming text using `nomic-embed-text` embeddings.
 2. Stores memories in a `Memory_idx` class on Weaviate.
 3. Runs vector searches to retrieve top‑K relevant memories for a user.
 4. Injects retrieved memories into the prompt before it reaches the LLM.
