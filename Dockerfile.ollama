@@ -1,5 +1,13 @@
 # Base Ollama image
 FROM ollama/ollama:latest
 
+# We comment these out because the models are already in your local volume.
+# This prevents Docker from ever trying to download them during a build.
+# RUN ollama serve & \
+#     sleep 5 && \
+#     ollama pull nomic-embed-text && \
+#     ollama pull deepseek-r1:1.5b && \
+#     wait
+
 # Start the Ollama server by default
 ENTRYPOINT ["ollama", "serve"]
