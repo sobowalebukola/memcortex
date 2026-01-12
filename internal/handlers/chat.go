@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/sobowalebukola/memcortex/internal/memory"
 )
@@ -19,8 +20,8 @@ type ChatRequest struct {
 
 // Simplified Response for a cleaner human-readable output
 type ChatResponse struct {
-	Response string   `json:"response"`
-	Memories []string `json:"past_context,omitempty"`
+	Response string   `json:"new_message"`
+	Memories []string `json:"related_memories"`
 }
 
 type ChatHandler struct {
@@ -38,17 +39,23 @@ func (h *ChatHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		userID = "emmanuel" // Precise fallback
-	}
+if userID == "" {
+        userID = fmt.Sprintf("user_%d", time.Now().Unix())
+        log.Printf("No X-User-ID header found. Assigning dynamic ID: %s", userID)
+    }
+// --- NEW: JUST-IN-TIME REGISTRATION ---
+    // This addresses @sobowalebukola's comment: "write a logic that adds a user (register)"
+    ctx := r.Context()
+    if err := h.Manager.EnsureUserExists(ctx, userID); err != nil {
+        log.Printf("Warning: JIT Registration failed for %s: %v", userID, err)
+        // We continue because the user might already exist, but logging is important
+    }
 
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Bad request body", http.StatusBadRequest)
 		return
 	}
-
-	ctx := r.Context()
 
 	// 1. Retrieve Memories
 	memories, err := h.Manager.Retrieve(ctx, userID, req.Message)
@@ -115,12 +122,12 @@ func (h *ChatHandler) callLLM(ctx context.Context, userMessage string, memories 
 		contextBuilder.WriteString(fmt.Sprintf("- %s\n", m.Content))
 	}
 
-	systemPrompt := fmt.Sprintf("You are a focused assistant for the MemCortex software project. " +
-        "1. Answer the User using ONLY the provided Context. " +
-        "2. If the answer is not in the context, say 'I don't have that in my memory.' " +
-        "3. Do NOT mention brain biology, neocortex, or anatomy. " +
-        "4. Keep your response simple and under three sentences. " +
-        "5. The user's project context is: %s", userBio)
+	systemPrompt := fmt.Sprintf("You are the MemCortex Assistant. "+
+    "Context: %s. "+
+    "Rules: "+
+    "1. Use the Context above to answer. "+
+    "2. If unsure, say 'I don't have that in my memory.' "+
+    "3. Be concise (under 3 sentences). ", userBio)
 
 	fullPrompt := fmt.Sprintf("%s\n\nContext:\n%s\n\nUser: %s", systemPrompt, contextBuilder.String(), userMessage)
 

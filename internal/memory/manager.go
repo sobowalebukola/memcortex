@@ -195,3 +195,9 @@ func (m *Manager) GetUserBio(ctx context.Context, userID string) (string, error)
     // Assuming your store has a GetUser method
     return m.Store.GetUserBio(ctx, userID)
 }
+// In internal/memory/manager.go
+
+func (m *Manager) EnsureUserExists(ctx context.Context, userID string) error {
+    // This calls the EnsureSchema/EnsureUser logic we moved to the weaviate package
+    return m.Store.EnsureUser(ctx, userID)
+}

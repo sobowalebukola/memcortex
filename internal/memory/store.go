@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
@@ -34,7 +35,10 @@ func NewWeaviateStore(client *weaviate.Client, class string) *Store {
 
 func (s *Store) Save(ctx context.Context, userID, text string, embedding []float32) (string, error) {
 	id := uuid.New().String()
-	if userID == "" { userID = "emmanuel" }
+	if userID == "" {
+		userID = fmt.Sprintf("user_%d", time.Now().Unix())
+		log.Printf("Warning: Store received empty userID. Generated dynamic ID: %s", userID)
+	}
 
 	data := map[string]interface{}{
 		"userId":      userID,
@@ -254,4 +258,55 @@ func (s *Store) GetUserBio(ctx context.Context, userID string) (string, error) {
 	bio, _ := userFields["bio"].(string)
 
 	return bio, nil
+}
+// internal/memory/store.go
+
+// EnsureUser checks if a user exists in the 'User' class. If not, it creates them.
+func (s *Store) EnsureUser(ctx context.Context, userID string) error {
+	// 1. Build the filter using the Builder Pattern
+	where := filters.Where().
+		WithPath([]string{"userId"}).
+		WithOperator(filters.Equal).
+		WithValueString(userID)
+
+	// 2. Query the User class
+	result, err := s.Client.GraphQL().Get().
+		WithClassName("User").
+		WithFields(graphql.Field{Name: "userId"}).
+		WithWhere(where).
+		Do(ctx)
+
+	if err != nil {
+		return fmt.Errorf("failed to check user existence: %w", err)
+	}
+
+	// 3. Check if we found any results
+	if result.Data != nil && result.Data["Get"] != nil {
+		getMap := result.Data["Get"].(map[string]interface{})
+		users, ok := getMap["User"].([]interface{})
+		if ok && len(users) > 0 {
+			// User already exists, nothing to do
+			return nil
+		}
+	}
+
+	// 4. User doesn't exist, create them (JIT Registration)
+	log.Printf(">>> [DB] New user detected: %s. Performing JIT registration...", userID)
+	
+	properties := map[string]interface{}{
+		"userId":   userID,
+		"username": "User_" + userID,
+		"bio":      "A new user of the MemCortex system.",
+	}
+
+	_, err = s.Client.Data().Creator().
+		WithClassName("User").
+		WithProperties(properties).
+		Do(ctx)
+
+	if err != nil {
+		return fmt.Errorf("failed to create new user: %w", err)
+	}
+
+	return nil
 }

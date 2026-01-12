@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,8 +10,9 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
-	"github.com/weaviate/weaviate/entities/models"
 
+	// Using 'wv' as the alias for your internal database package
+	wv "github.com/sobowalebukola/memcortex/internal/db/weaviate"
 	ollama "github.com/sobowalebukola/memcortex/internal/embedder"
 	"github.com/sobowalebukola/memcortex/internal/handlers"
 	"github.com/sobowalebukola/memcortex/internal/memory"
@@ -45,7 +45,7 @@ func main() {
 	}
 
 	// 3. Initialize/Check Schema (Create the table if missing)
-	ensureSchema(wClient)
+	wv.EnsureSchema(wClient)
 
 	// 4. Initialize Embedder (Ollama)
 	emb := ollama.NewEmbeddingClient(os.Getenv("EMBEDDING_MODEL"))
@@ -139,64 +139,4 @@ func main() {
 
 	log.Printf("server listening on %s", addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
-}
-
-// ensureSchema checks if the 'Memory_idx' class exists and creates it if missing.
-func ensureSchema(client *weaviate.Client) {
-	className := "Memory_idx"
-	ctx := context.Background()
-
-	// Check existence
-	exists, err := client.Schema().ClassExistenceChecker().
-		WithClassName(className).
-		Do(ctx)
-	if err != nil {
-		log.Printf("Warning: Failed to check schema existence: %v (Weaviate might still be starting)", err)
-		return
-	}
-
-	if exists {
-		log.Println("Schema 'Memory_idx' already exists.")
-		return
-	}
-
-	log.Println("Creating schema for 'Memory_idx'...")
-
-	classObj := &models.Class{
-		Class:      className,
-		Vectorizer: "none", // We handle vectorization manually with Ollama
-		Properties: []*models.Property{
-			{Name: "content", DataType: []string{"text"}},
-			{Name: "userId", DataType: []string{"string"}}, // string allows exact filtering
-			{Name: "timestamp", DataType: []string{"date"}},
-			{Name: "memoryType", DataType: []string{"string"}},
-			{Name: "isSummary", DataType: []string{"boolean"}},
-			{Name: "originalIds", DataType: []string{"text[]"}},
-		},
-	}
-
-	err = client.Schema().ClassCreator().WithClass(classObj).Do(ctx)
-	if err != nil {
-		log.Fatalf("Failed to create schema: %v", err)
-	}
-	log.Println("Schema created successfully!")
-	// --- 2. User Schema ---
-    userClassName := "User"
-    userExists, _ := client.Schema().ClassExistenceChecker().WithClassName(userClassName).Do(ctx)
-
-    if !userExists {
-        log.Println("Creating schema for 'User'...")
-        userClass := &models.Class{
-            Class:      userClassName,
-            Vectorizer: "none",
-            Properties: []*models.Property{
-                {Name: "username", DataType: []string{"string"}},
-                {Name: "userId", DataType: []string{"string"}}, // This is the X-User-ID
-                {Name: "bio", DataType: []string{"text"}},      // This holds the "software project" context
-                {Name: "createdAt", DataType: []string{"date"}},
-            },
-        }
-        client.Schema().ClassCreator().WithClass(userClass).Do(ctx)
-    }
-
 }

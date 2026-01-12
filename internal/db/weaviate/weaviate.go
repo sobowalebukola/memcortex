@@ -1,17 +1,29 @@
-package db
+package weaviate
 
 import (
     "context"
     "fmt"
+	"log"
     "time"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate"
     "github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
     "github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
+	"github.com/weaviate/weaviate/entities/models"
 )
+// WeaviateClient must be defined here to solve the "undefined" errors
+type WeaviateClient struct {
+	client *weaviate.Client
+}
+
+func NewWeaviateClient(client *weaviate.Client) *WeaviateClient {
+	return &WeaviateClient{client: client}
+}
 
 func (w *WeaviateClient) AddMemory(ctx context.Context, content string, userID string) error {
-    // FORCE a value if userID is empty to ensure summarization works
+
     if userID == "" {
-        userID = "emmanuel123"
+        userID = fmt.Sprintf("user_%d", time.Now().Unix())
+        log.Printf("Warning: Empty userID provided. Falling back to generated ID: %s", userID)
     }
 
     properties := map[string]interface{}{
@@ -60,66 +72,126 @@ func (w *WeaviateClient) RegisterUser(ctx context.Context, username string, bio 
     return userID, nil
 }
 
-// GetUserBio retrieves the specific project context for a user
+// GetUserBio retrieves the specific project context for a user.
 func (w *WeaviateClient) GetUserBio(ctx context.Context, userID string) (string, error) {
-    // If we're using the default user for testing
+    // If ID is empty, we return early. No hardcoded "emmanuel123".
     if userID == "" {
-        userID = "emmanuel123"
+        return "", nil 
     }
 
-    // Use GQL to find the user by their ID
-    result, err := w.client.GraphQL().Get().
-        WithClassName("User").
-        WithFields(graphql.Field{Name: "bio"}).
-        WithWhere(&filters.WhereBuilder{
-            Path:     []string{"userId"},
-            Operator: filters.Equal,
-            ValueString: userID,
-        }).
-        Do(ctx)
+// FIX: Use Fluent methods instead of struct literals for filters
+	where := filters.Where().
+		WithPath([]string{"userId"}).
+		WithOperator(filters.Equal).
+		WithValueString(userID)
 
-    if err != nil {
-        return "", err
-    }
-
-    // Handle extraction logic (checking for empty results)
-    data := result.Data["Get"].(map[string]interface{})["User"].([]interface{})
-    if len(data) == 0 {
-        return "Software development project called MemCortex.", nil // Default fallback
-    }
-
-    user := data[0].(map[string]interface{})
-    return user["bio"].(string), nil
-}
-
-func (s *WeaviateStore) GetUserBio(ctx context.Context, userID string) (string, error) {
-	result, err := s.client.GraphQL().Get().
+	result, err := w.client.GraphQL().Get().
 		WithClassName("User").
 		WithFields(graphql.Field{Name: "bio"}).
-		WithWhere(&filters.WhereBuilder{
-			Path:        []string{"userId"},
-			Operator:    filters.Equal,
-			ValueString: userID,
-		}).
+		WithWhere(where).
 		Do(ctx)
+    if err != nil {
+        return "", fmt.Errorf("weaviate query failed: %w", err)
+    }
 
+    // Safe navigation of the nested map
+    if result.Data["Get"] == nil {
+        return "", nil
+    }
+
+    data, ok := result.Data["Get"].(map[string]interface{})["User"].([]interface{})
+    if !ok || len(data) == 0 {
+        // Return empty string if user has no bio or doesn't exist.
+        // This lets the Handler decide the default prompt.
+        return "", nil 
+    }
+
+    user, ok := data[0].(map[string]interface{})
+    if !ok {
+        return "", nil
+    }
+
+    bio, _ := user["bio"].(string)
+    return bio, nil
+}
+// EnsureSchema checks if the required classes exist and creates them if missing.
+func EnsureSchema(client *weaviate.Client) {
+	ctx := context.Background()
+
+	// 1. Memory_idx Schema
+	ensureClass(client, ctx, &models.Class{
+		Class:      "Memory_idx",
+		Vectorizer: "none",
+		Properties: []*models.Property{
+			{Name: "content", DataType: []string{"text"}},
+			{Name: "userId", DataType: []string{"string"}},
+			{Name: "timestamp", DataType: []string{"date"}},
+			{Name: "memoryType", DataType: []string{"string"}},
+			{Name: "isSummary", DataType: []string{"boolean"}},
+			{Name: "originalIds", DataType: []string{"text[]"}},
+		},
+	})
+
+	// 2. User Schema
+	ensureClass(client, ctx, &models.Class{
+		Class:      "User",
+		Vectorizer: "none",
+		Properties: []*models.Property{
+			{Name: "username", DataType: []string{"string"}},
+			{Name: "userId", DataType: []string{"string"}},
+			{Name: "bio", DataType: []string{"text"}},
+			{Name: "createdAt", DataType: []string{"date"}},
+		},
+	})
+}
+// FIX: Added the missing ensureClass helper function
+func ensureClass(client *weaviate.Client, ctx context.Context, classObj *models.Class) {
+	exists, err := client.Schema().ClassExistenceChecker().WithClassName(classObj.Class).Do(ctx)
 	if err != nil {
-		return "", err
+		log.Printf("Error checking schema for %s: %v", classObj.Class, err)
+		return
+	}
+	if !exists {
+		err := client.Schema().ClassCreator().WithClass(classObj).Do(ctx)
+		if err != nil {
+			log.Fatalf("Failed to create class %s: %v", classObj.Class, err)
+		}
+	}
+}
+// EnsureUser checks if a user exists by their ID. If not, it creates them.
+func (w *WeaviateClient) EnsureUser(ctx context.Context, userID string) error {
+	// 1. Check if user exists
+	where := filters.Where().
+        WithPath([]string{"userId"}).
+        WithOperator(filters.Equal).
+        WithValueString(userID)
+
+    result, err := w.client.GraphQL().Get().
+        WithClassName("User").
+        WithFields(graphql.Field{Name: "userId"}).
+        WithWhere(where). // Use the 'where' variable here
+        Do(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to check user existence: %w", err)
 	}
 
-	// Navigate the nested Weaviate response map
-	data, ok := result.Data["Get"].(map[string]interface{})
-	if !ok {
-		return "", fmt.Errorf("unexpected response format")
+	data := result.Data["Get"].(map[string]interface{})["User"].([]interface{})
+	
+	// 2. If user exists, we are done
+	if len(data) > 0 {
+		return nil 
 	}
 
-	users, ok := data["User"].([]interface{})
-	if !ok || len(users) == 0 {
-		return "", fmt.Errorf("user not found")
-	}
+	// 3. If user doesn't exist, create them (Register)
+	log.Printf("New user detected: %s. Performing registration...", userID)
+	_, err = w.client.Data().Creator().
+		WithClassName("User").
+		WithProperties(map[string]interface{}{
+			"userId":    userID,
+			"username":  "User_" + userID, // Default username
+			"bio":       "New MemCortex user",
+			"createdAt": time.Now().Format(time.RFC3339),
+		}).Do(ctx)
 
-	userMap := users[0].(map[string]interface{})
-	bio, _ := userMap["bio"].(string)
-
-	return bio, nil
+	return err
 }
