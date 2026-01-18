@@ -18,7 +18,7 @@ type ChatRequest struct {
 	Message string `json:"message"`
 }
 
-// Simplified Response for a cleaner human-readable output
+
 type ChatResponse struct {
 	Response string   `json:"new_message"`
 	Memories []string `json:"related_memories"`
@@ -43,12 +43,11 @@ if userID == "" {
         userID = fmt.Sprintf("user_%d", time.Now().Unix())
         log.Printf("No X-User-ID header found. Assigning dynamic ID: %s", userID)
     }
-// --- NEW: JUST-IN-TIME REGISTRATION ---
-    // This addresses @sobowalebukola's comment: "write a logic that adds a user (register)"
+
     ctx := r.Context()
     if err := h.Manager.EnsureUserExists(ctx, userID); err != nil {
         log.Printf("Warning: JIT Registration failed for %s: %v", userID, err)
-        // We continue because the user might already exist, but logging is important
+
     }
 
 	var req ChatRequest
@@ -57,23 +56,20 @@ if userID == "" {
 		return
 	}
 
-	// 1. Retrieve Memories
+	
 	memories, err := h.Manager.Retrieve(ctx, userID, req.Message)
 	if err != nil {
 		log.Printf("Failed to retrieve memories: %v", err)
 		memories = []memory.Memory{}
 	}
-	// --- NEW: FETCH USER BIO ---
-    // We fetch the bio to provide permanent project context
-    // 1. Fetch the bio (Keep this as is)
+
 userBio, err := h.Manager.GetUserBio(ctx, userID)
 if err != nil {
     log.Printf("Could not fetch user bio: %v", err)
     userBio = "A software project called MemCortex." 
 }
 
-// 2. FIXED: Change 'UserBio' (capital U) to 'userBio' (lowercase u) 
-// and make sure it is the 4th argument.
+
 aiResponse, err := h.callLLM(ctx, req.Message, memories, userBio) 
 if err != nil {
     log.Printf("LLM generation failed: %v", err)
@@ -81,7 +77,7 @@ if err != nil {
     return
 }
 
-	// 3. Background Processing (Decoupled from Request)
+
 	go func(uID, msg, aiResp string) {
 		bgCtx := context.Background()
 		_ = h.Manager.Save(bgCtx, uID, msg)
@@ -89,7 +85,7 @@ if err != nil {
 		_ = h.Manager.CheckAndSummarize(bgCtx, uID)
 	}(userID, req.Message, aiResponse)
 
-	// 4. CLEAN OUTPUT: Extract only the content strings
+
 	cleanMemories := make([]string, 0, len(memories))
 	for _, m := range memories {
 		cleanMemories = append(cleanMemories, m.Content)
@@ -102,9 +98,6 @@ if err != nil {
 	})
 }
 
-// ---------------------------------------------------------
-// Helper: Talk to Ollama
-// ---------------------------------------------------------
 
 type ollamaRequest struct {
 	Model  string `json:"model"`

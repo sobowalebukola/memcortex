@@ -10,7 +10,7 @@ import (
     "github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
 	"github.com/weaviate/weaviate/entities/models"
 )
-// WeaviateClient must be defined here to solve the "undefined" errors
+
 type WeaviateClient struct {
 	client *weaviate.Client
 }
@@ -34,7 +34,7 @@ func (w *WeaviateClient) AddMemory(ctx context.Context, content string, userID s
         "isSummary":  false,
     }
 
-    // This log will appear in your terminal to confirm the save
+
     fmt.Printf("--- [DB] SAVING MEMORY FOR USER: %s ---\n", userID)
 
     _, err := w.client.Data().Creator().
@@ -49,7 +49,7 @@ func (w *WeaviateClient) AddMemory(ctx context.Context, content string, userID s
     return nil
 }
 
-// RegisterUser adds a new user profile to Weaviate
+
 func (w *WeaviateClient) RegisterUser(ctx context.Context, username string, bio string) (string, error) {
     userID := fmt.Sprintf("u-%d", time.Now().Unix())
 
@@ -72,14 +72,14 @@ func (w *WeaviateClient) RegisterUser(ctx context.Context, username string, bio 
     return userID, nil
 }
 
-// GetUserBio retrieves the specific project context for a user.
+
 func (w *WeaviateClient) GetUserBio(ctx context.Context, userID string) (string, error) {
-    // If ID is empty, we return early. No hardcoded "emmanuel123".
+
     if userID == "" {
         return "", nil 
     }
 
-// FIX: Use Fluent methods instead of struct literals for filters
+
 	where := filters.Where().
 		WithPath([]string{"userId"}).
 		WithOperator(filters.Equal).
@@ -101,8 +101,6 @@ func (w *WeaviateClient) GetUserBio(ctx context.Context, userID string) (string,
 
     data, ok := result.Data["Get"].(map[string]interface{})["User"].([]interface{})
     if !ok || len(data) == 0 {
-        // Return empty string if user has no bio or doesn't exist.
-        // This lets the Handler decide the default prompt.
         return "", nil 
     }
 
@@ -114,11 +112,11 @@ func (w *WeaviateClient) GetUserBio(ctx context.Context, userID string) (string,
     bio, _ := user["bio"].(string)
     return bio, nil
 }
-// EnsureSchema checks if the required classes exist and creates them if missing.
+
 func EnsureSchema(client *weaviate.Client) {
 	ctx := context.Background()
 
-	// 1. Memory_idx Schema
+
 	ensureClass(client, ctx, &models.Class{
 		Class:      "Memory_idx",
 		Vectorizer: "none",
@@ -132,7 +130,7 @@ func EnsureSchema(client *weaviate.Client) {
 		},
 	})
 
-	// 2. User Schema
+
 	ensureClass(client, ctx, &models.Class{
 		Class:      "User",
 		Vectorizer: "none",
@@ -144,7 +142,7 @@ func EnsureSchema(client *weaviate.Client) {
 		},
 	})
 }
-// FIX: Added the missing ensureClass helper function
+
 func ensureClass(client *weaviate.Client, ctx context.Context, classObj *models.Class) {
 	exists, err := client.Schema().ClassExistenceChecker().WithClassName(classObj.Class).Do(ctx)
 	if err != nil {
@@ -158,9 +156,9 @@ func ensureClass(client *weaviate.Client, ctx context.Context, classObj *models.
 		}
 	}
 }
-// EnsureUser checks if a user exists by their ID. If not, it creates them.
+
 func (w *WeaviateClient) EnsureUser(ctx context.Context, userID string) error {
-	// 1. Check if user exists
+
 	where := filters.Where().
         WithPath([]string{"userId"}).
         WithOperator(filters.Equal).
@@ -169,7 +167,7 @@ func (w *WeaviateClient) EnsureUser(ctx context.Context, userID string) error {
     result, err := w.client.GraphQL().Get().
         WithClassName("User").
         WithFields(graphql.Field{Name: "userId"}).
-        WithWhere(where). // Use the 'where' variable here
+        WithWhere(where). 
         Do(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check user existence: %w", err)
@@ -177,18 +175,18 @@ func (w *WeaviateClient) EnsureUser(ctx context.Context, userID string) error {
 
 	data := result.Data["Get"].(map[string]interface{})["User"].([]interface{})
 	
-	// 2. If user exists, we are done
+
 	if len(data) > 0 {
 		return nil 
 	}
 
-	// 3. If user doesn't exist, create them (Register)
+	
 	log.Printf("New user detected: %s. Performing registration...", userID)
 	_, err = w.client.Data().Creator().
 		WithClassName("User").
 		WithProperties(map[string]interface{}{
 			"userId":    userID,
-			"username":  "User_" + userID, // Default username
+			"username":  "User_" + userID, 
 			"bio":       "New MemCortex user",
 			"createdAt": time.Now().Format(time.RFC3339),
 		}).Do(ctx)

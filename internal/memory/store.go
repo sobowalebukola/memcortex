@@ -191,7 +191,7 @@ func (s *Store) parseGraphQLResponse(resp *models.GraphQLResponse) ([]Memory, er
 }
 
 func (s *Store) Search(ctx context.Context, queryEmbedding []float32, userID string, k int) ([]Memory, error) {
-	// Re-added specific fields needed for Search
+	
 	fields := []graphql.Field{
 		{Name: "content"},
 		{Name: "timestamp"},
@@ -222,10 +222,9 @@ func (s *Store) Search(ctx context.Context, queryEmbedding []float32, userID str
 	return s.parseGraphQLResponse(resp)
 }
 
-// GetUserBio fetches the permanent project context for a specific user from the User class.
-// GetUserBio queries the 'User' class in Weaviate for the project bio.
+
 func (s *Store) GetUserBio(ctx context.Context, userID string) (string, error) {
-	// Use the Builder Pattern instead of struct literals
+	
 	where := filters.Where().
 		WithPath([]string{"userId"}).
 		WithOperator(filters.Equal).
@@ -234,14 +233,14 @@ func (s *Store) GetUserBio(ctx context.Context, userID string) (string, error) {
 	result, err := s.Client.GraphQL().Get().
 		WithClassName("User") .
 		WithFields(graphql.Field{Name: "bio"}).
-		WithWhere(where). // Pass the builder here
+		WithWhere(where). 
 		Do(ctx)
 
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch user bio: %w", err)
 	}
 
-	// Navigate the response map
+	
 	if result.Data == nil || result.Data["Get"] == nil {
 		return "", fmt.Errorf("no data found in Weaviate")
 	}
@@ -249,7 +248,7 @@ func (s *Store) GetUserBio(ctx context.Context, userID string) (string, error) {
 	getMap := result.Data["Get"].(map[string]interface{})
 	users, ok := getMap["User"].([]interface{})
 	
-	// Fallback if the user isn't in the registry yet
+	
 	if !ok || len(users) == 0 {
 		return "A software project called MemCortex focusing on long-term AI memory.", nil
 	}
@@ -259,17 +258,17 @@ func (s *Store) GetUserBio(ctx context.Context, userID string) (string, error) {
 
 	return bio, nil
 }
-// internal/memory/store.go
 
-// EnsureUser checks if a user exists in the 'User' class. If not, it creates them.
+
+
 func (s *Store) EnsureUser(ctx context.Context, userID string) error {
-	// 1. Build the filter using the Builder Pattern
+	
 	where := filters.Where().
 		WithPath([]string{"userId"}).
 		WithOperator(filters.Equal).
 		WithValueString(userID)
 
-	// 2. Query the User class
+	
 	result, err := s.Client.GraphQL().Get().
 		WithClassName("User").
 		WithFields(graphql.Field{Name: "userId"}).
@@ -280,17 +279,17 @@ func (s *Store) EnsureUser(ctx context.Context, userID string) error {
 		return fmt.Errorf("failed to check user existence: %w", err)
 	}
 
-	// 3. Check if we found any results
+	
 	if result.Data != nil && result.Data["Get"] != nil {
 		getMap := result.Data["Get"].(map[string]interface{})
 		users, ok := getMap["User"].([]interface{})
 		if ok && len(users) > 0 {
-			// User already exists, nothing to do
+			
 			return nil
 		}
 	}
 
-	// 4. User doesn't exist, create them (JIT Registration)
+	
 	log.Printf(">>> [DB] New user detected: %s. Performing JIT registration...", userID)
 	
 	properties := map[string]interface{}{

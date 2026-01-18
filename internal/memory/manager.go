@@ -107,9 +107,7 @@ func FormatMemoryPrompt(memories []Memory) []MemoryPrompt {
 	return result
 }
 
-// ---------------------------
-// Summarization Logic
-// ---------------------------
+
 
 func (m *Manager) CheckAndSummarize(ctx context.Context, userID string) error {
 	if !m.isAutoSummaryEnabled() {
@@ -191,13 +189,12 @@ func (m *Manager) isAutoSummaryEnabled() bool {
 	return val
 }
 func (m *Manager) GetUserBio(ctx context.Context, userID string) (string, error) {
-    // We call the store directly to fetch the User object
-    // Assuming your store has a GetUser method
+
     return m.Store.GetUserBio(ctx, userID)
 }
-// In internal/memory/manager.go
+
 
 func (m *Manager) EnsureUserExists(ctx context.Context, userID string) error {
-    // This calls the EnsureSchema/EnsureUser logic we moved to the weaviate package
+
     return m.Store.EnsureUser(ctx, userID)
 }
