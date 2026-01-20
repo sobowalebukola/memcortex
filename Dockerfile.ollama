@@ -1,5 +1,15 @@
-# Base Ollama image
 FROM ollama/ollama:latest
+
+
+COPY entrypoint.sh /entrypoint.sh
+
+
+RUN chmod +x /entrypoint.sh
+
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+#FROM ollama/ollama:latest
 
 # We comment these out because the models are already in your local volume.
 # This prevents Docker from ever trying to download them during a build.
@@ -10,4 +20,4 @@ FROM ollama/ollama:latest
 #     wait
 
 # Start the Ollama server by default
-ENTRYPOINT ["ollama", "serve"]
+#ENTRYPOINT ["ollama", "serve"]

@@ -66,7 +66,7 @@ if userID == "" {
 userBio, err := h.Manager.GetUserBio(ctx, userID)
 if err != nil {
     log.Printf("Could not fetch user bio: %v", err)
-    userBio = "A software project called MemCortex." 
+    userBio = "a user seeking assistance" 
 }
 
 
@@ -114,13 +114,16 @@ func (h *ChatHandler) callLLM(ctx context.Context, userMessage string, memories 
 	for _, m := range memories {
 		contextBuilder.WriteString(fmt.Sprintf("- %s\n", m.Content))
 	}
+	var bioSection string
+    if userBio != "" {
+        bioSection = fmt.Sprintf("User Info: %s. ", userBio)
+    }
 
 	systemPrompt := fmt.Sprintf("You are the MemCortex Assistant. "+
     "Context: %s. "+
     "Rules: "+
     "1. Use the Context above to answer. "+
-    "2. If unsure, say 'I don't have that in my memory.' "+
-    "3. Be concise (under 3 sentences). ", userBio)
+    "2. Be concise (under 3 sentences). ", bioSection)
 
 	fullPrompt := fmt.Sprintf("%s\n\nContext:\n%s\n\nUser: %s", systemPrompt, contextBuilder.String(), userMessage)
 
