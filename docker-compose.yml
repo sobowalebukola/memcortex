@@ -2,11 +2,8 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
-    build:
-      context: .
-      dockerfile: Dockerfile.ollama
     ports:
-      - "${OLLAMA_ADDR}:11434"
+      - "11434:11434"
     restart: unless-stopped
     volumes:
       - ./ollama_storage:/root/.ollama
@@ -14,7 +11,10 @@ services:
       test: ["CMD", "ollama", "list"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
+      
+
 
   weaviate:
     image: semitechnologies/weaviate:1.25.3

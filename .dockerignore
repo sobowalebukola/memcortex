@@ -1,0 +1,4 @@
+.git
+ollama_storage
+bin/
+*.exe
