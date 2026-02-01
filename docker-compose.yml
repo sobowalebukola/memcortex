@@ -5,6 +5,12 @@ services:
     ports:
       - "11434:11434"
     restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "ollama serve & 
+      sleep 5 && 
+      ollama pull ${EMBEDDING_MODEL} && 
+      wait"
     volumes:
       - ./ollama_storage:/root/.ollama
     healthcheck:
