@@ -1,5 +1,10 @@
-# Base Ollama image
 FROM ollama/ollama:latest
 
-# Start the Ollama server by default
+# We'll use the default path during build
+RUN ollama serve & \
+    sleep 5 && \
+    ollama pull nomic-embed-text && \
+    ollama pull deepseek-r1:1.5b && \
+    pkill ollama
+
 ENTRYPOINT ["ollama", "serve"]
