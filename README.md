@@ -1,10 +1,20 @@
+<p align="center">
+  <img src="assets/memcortex-original.jpg" alt="Memcortex Logo" width="200"/>
+</p>
+
 # Memcortex
 
 **Persistent Memory Layer for LLMs (Memory-RAG)**
 
 Memcortex is a Proof of Concept (PoC) designed to equip conversational agents and LLM applications with persistent, long-term memory. By implementing a Memory-RAG (Retrieval-Augmented Generation) architecture, Memcortex allows agents to transcend context-window limitations, enabling them to recall past interactions and specific data points indefinitely.
 
-[![Read the Deep Dive on Medium](https://img.shields.io/badge/Medium-Read_The_Article_Here-blue?style=for-the-badge&logo=medium)](https://medium.com/@sobowalebukola/inside-memcortex-a-lightweight-semantic-memory-layer-for-llms-394cf940191a)
+<p align="center">
+  <img src="https://img.shields.io/github/license/sobowalebukola/memcortex" alt="License"/>
+  <img src="https://img.shields.io/github/stars/sobowalebukola/memcortex" alt="Stars"/>
+  <br/>
+  [![Medium Article](https://img.shields.io/badge/Medium-Read_Article-1DA1F2?style=flat&logo=medium&logoColor=white)](https://medium.com/@sobowalebukola/inside-memcortex-a-lightweight-semantic-memory-layer-for-llms-394cf940191a)
+
+</p>
 
 ---
 
