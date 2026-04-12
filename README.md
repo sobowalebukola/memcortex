@@ -10,6 +10,11 @@ Memcortex is a Proof of Concept (PoC) designed to equip conversational agents an
 
 
 <p align="center">
+  <a href="https://github.com/sobowalebukola/memcortex/actions/workflows/ci.yml">
+    <img src="https://github.com/sobowalebukola/memcortex/actions/workflows/ci.yml/badge.svg" alt="CI"/>
+  </a>
+  <img src="https://img.shields.io/badge/lint-golangci--lint-blue" alt="Lint"/>
+  <img src="https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white" alt="Go 1.24"/>
   <img src="https://img.shields.io/github/license/sobowalebukola/memcortex" alt="License"/>
   <img src="https://img.shields.io/github/stars/sobowalebukola/memcortex" alt="Stars"/>
   <a href="https://blog.stackademic.com/inside-memcortex-a-lightweight-semantic-memory-layer-for-llms-394cf940191a">
