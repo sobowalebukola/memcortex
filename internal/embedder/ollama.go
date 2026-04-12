@@ -9,8 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type EmbeddingClient struct {
@@ -28,12 +26,6 @@ type embeddingResponse struct {
 }
 
 func NewEmbeddingClient(model string) *EmbeddingClient {
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("No .env file found, using system environment")
-	}
-
 	ollamaAddr := os.Getenv("OLLAMA_ADDR")
 	if ollamaAddr == "" {
 		ollamaAddr = "11434"

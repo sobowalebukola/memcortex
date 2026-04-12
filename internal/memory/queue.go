@@ -1,11 +1,10 @@
 package memory
 
 import (
-	"fmt"
-	"sync"
-
 	"context"
+	"log"
 	"strings"
+	"sync"
 	"time"
 
 	ollama "github.com/sobowalebukola/memcortex/internal/embedder"
@@ -41,7 +40,7 @@ func (q *EmbeddingQueue) worker() {
 	for job := range q.jobs {
 		emb, err := embedWithRetry(q.embedder, job.Text)
 		if err != nil {
-			fmt.Println("Embedding failed, using mock embedding:", err)
+			log.Println("Embedding failed, using mock embedding:", err)
 			emb = mockEmbedding(job.Text)
 			err = nil
 		}

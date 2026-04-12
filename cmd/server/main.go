@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 	ollama "github.com/sobowalebukola/memcortex/internal/embedder"
@@ -23,9 +24,19 @@ func main() {
 	if dimStr == "" {
 		dimStr = "768"
 	}
-	dim, _ := strconv.Atoi(dimStr)
+	dim, err := strconv.Atoi(dimStr)
+	if err != nil {
+		log.Fatalf("invalid EMBEDDING_DIM %q: %v", dimStr, err)
+	}
 
-	store, err := memory.NewStore("memory_idx", dim)
+	weaviateHost := os.Getenv("WEAVIATE_HOST")
+	if weaviateHost == "" {
+		weaviateHost = "weaviate:8080"
+	}
+	weaviateHost = strings.TrimPrefix(weaviateHost, "https://")
+	weaviateHost = strings.TrimPrefix(weaviateHost, "http://")
+
+	store, err := memory.NewStore("memory_idx", dim, weaviateHost)
 	if err != nil {
 		log.Fatalf("failed to create memory store: %v", err)
 	}

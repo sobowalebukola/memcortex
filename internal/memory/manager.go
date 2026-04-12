@@ -2,25 +2,18 @@ package memory
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
-	weaviate "github.com/weaviate/weaviate-go-client/v4/weaviate"
-
-	"os"
-	"strconv"
-
-	"github.com/joho/godotenv"
 	ollama "github.com/sobowalebukola/memcortex/internal/embedder"
 )
 
 type Manager struct {
-	Store          *Store
-	Embedder       *ollama.EmbeddingClient
-	TopK           int
-	WeaviateClient *weaviate.Client
+	Store    *Store
+	Embedder *ollama.EmbeddingClient
+	TopK     int
 }
 
 type MemoryPrompt struct {
@@ -29,12 +22,6 @@ type MemoryPrompt struct {
 }
 
 func NewManager(store *Store, emb *ollama.EmbeddingClient) *Manager {
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("No .env file found, using system environment")
-	}
-
 	topKStr := os.Getenv("TOP_K_MEMORIES")
 	if topKStr == "" {
 		topKStr = "10"
@@ -96,40 +83,4 @@ func FormatMemoryPrompt(memories []Memory) []MemoryPrompt {
 	}
 
 	return result
-}
-
-type MemoryManager struct {
-	queue *EmbeddingQueue
-	store *Store
-}
-
-func NewMemoryManager(queue *EmbeddingQueue, store *Store) *MemoryManager {
-	return &MemoryManager{
-		queue: queue,
-		store: store,
-	}
-}
-
-func (m *MemoryManager) SaveMemory(ctx context.Context, userID, text string) error {
-	go func() {
-		embedding, err := m.queue.Enqueue(userID, text)
-		if err != nil {
-			fmt.Println("Error generating embedding:", err)
-			return
-		}
-
-		embedding32 := make([]float32, len(embedding))
-
-		for i, v := range embedding {
-			embedding32[i] = float32(v)
-		}
-		id, err := m.store.Save(ctx, userID, text, embedding32)
-		if err != nil {
-			fmt.Println("Error saving memory:", err)
-			return
-		}
-
-		log.Printf("Memory saved with ID: %s", id)
-	}()
-	return nil
 }

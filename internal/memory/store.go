@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"log"
 	"os"
 	"strconv"
 
 	"github.com/google/uuid"
-	"github.com/joho/godotenv"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
@@ -36,9 +34,9 @@ type SearchResult struct {
 // ---------------------------
 // Initialize Weaviate store
 // ---------------------------
-func NewStore(class string, dim int) (*Store, error) {
+func NewStore(class string, dim int, host string) (*Store, error) {
 	client, err := weaviate.NewClient(weaviate.Config{
-		Host:   "weaviate:8080",
+		Host:   host,
 		Scheme: "http",
 	})
 
@@ -66,7 +64,7 @@ func (s *Store) Save(ctx context.Context, userID, text string, embedding []float
 	data := map[string]any{
 		"user_id":   userID,
 		"text":      text,
-		"timestamp": time.Now().Unix(),
+		"timestamp": time.Now().Format(time.RFC3339),
 		"embedding": embedding,
 	}
 
@@ -94,11 +92,6 @@ func (s *Store) Search(ctx context.Context, queryEmbedding []float64, userID str
 	}
 
 	vec := float64ToFloat32Slice(queryEmbedding)
-
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("No .env file found, using system environment")
-	}
 
 	maxMemoryDistance, err := strconv.ParseFloat(os.Getenv("MAX_MEMORY_DISTANCE"), 64)
 	if err != nil || maxMemoryDistance == 0 {
