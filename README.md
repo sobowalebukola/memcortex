@@ -38,11 +38,12 @@ Memcortex is a Proof of Concept (PoC) designed to equip conversational agents an
 
 Memcortex stores user/application memories as both text and vectors in Weaviate and exposes a memory manager + middleware that:
 
-1. Embeds incoming text using `nomic-embed-text` embeddings.
-2. Stores memories in a `Memory_idx` class on Weaviate.
-3. Runs vector searches to retrieve top‑K relevant memories for a user.
-4. Injects retrieved memories into the prompt before it reaches the LLM.
-5. Optionally persists new memories asynchronously.
+1. **Classifies** incoming messages through an event-driven pipeline to determine if they are worth persisting.
+2. **Embeds** meaningful text using `nomic-embed-text` embeddings.
+3. **Deduplicates** against existing memories using vector similarity before saving.
+4. **Stores** memories in a `Memory_idx` class on Weaviate with metadata (event type, weight, TTL).
+5. **Retrieves** top-K relevant memories via vector search, scoped per user.
+6. **Injects** retrieved memories into the prompt before it reaches the LLM.
 
 This pattern is ideal for building chatbots, agents, and personalization layers that must "remember" details across sessions.
 
@@ -60,13 +61,15 @@ flowchart LR
   C -->|retrieve| D[Weaviate Vector Store]
   D -->|top-K| C
   C -->|inject memories| E[LLM Handler]
-  E -->|call LLM API| F[Ollama / Custom LLM]
-  F -->|response| E
-  E -->|save message| G(Background Save Worker)
-  G --> D
+  E -->|response| A
+  E -->|save message| F{Event Classifier}
+  F -->|trivial / low-value| G[Discard]
+  F -->|meaningful| H{Duplicate Check}
+  H -->|duplicate| G
+  H -->|new| I[Embed + Store]
+  I --> D
   subgraph Infra
     D
-    F
   end
 ```
 
@@ -77,12 +80,54 @@ User -> API Server (/chat)
       -> Memory Middleware:
            - Embed user query via Ollama
            - Query Weaviate vector index (top-K)
-           - Re-rank / filter / format
-           - Inject into prompt
-      -> LLM Handler -> Local or remote LLM
-      -> Return response
-Background worker: saves new user messages into Weaviate (embedding -> object)
+           - Format and inject into request context
+      -> Chat Handler:
+           - Return response with related memories
+           - Classify message (preference / goal / correction / profile / achievement)
+           - If low-value or trivial -> discard
+           - If meaningful -> embed via Ollama
+           - Check for near-duplicate memories -> skip if found
+           - Save to Weaviate with metadata (event_type, weight, ttl_days)
 ```
+
+---
+
+## Event-Driven Memory
+
+Not every message is worth remembering. Memcortex includes an event classifier that scores each incoming message and only persists meaningful events.
+
+### How it works
+
+1. Each message is scored by a multi-signal heuristic classifier.
+2. Positive signals (pattern matches) boost the score. Negative signals (questions, negations, third-person references) apply penalties.
+3. If the final weight is below `MIN_EVENT_WEIGHT`, the message is discarded.
+4. If the message passes classification, it is embedded and checked against existing memories for near-duplicates.
+5. New, unique memories are stored with metadata: `event_type`, `weight`, and `ttl_days`.
+
+### Event types
+
+| Type | Weight | TTL | Examples |
+|------|--------|-----|----------|
+| `correction` | 0.95 | never | "Actually my role is...", "I meant..." |
+| `profile` | 0.90 | never | "My name is...", "I work at...", "Call me..." |
+| `preference` | 0.90 | never | "I prefer...", "My favorite...", "I'd rather..." |
+| `goal` | 0.85 | 90 days | "I plan to...", "I'm working on...", "Remind me to..." |
+| `achievement` | 0.80 | 365 days | "I shipped...", "I got promoted...", "I launched..." |
+| `general` | 0.15-0.45 | 30 days | Unmatched messages, scored by word count |
+| `trivial` | 0.00 | -- | "ok", "thanks", "lol", short filler |
+
+### Penalties
+
+| Signal | Penalty | Rationale |
+|--------|---------|-----------|
+| Question (`?`, "what", "how do you"...) | -0.25 | Queries are not facts to remember |
+| Negation ("don't", "not", "never"...) | -0.15 | Weakens the signal of the statement |
+| Third-person ("he", "she", "they" without "I") | -0.35 | Not about the user |
+
+### Configuration
+
+- `MIN_EVENT_WEIGHT=0.3` -- Threshold for saving. Set to `0` to save everything (disables filtering).
+- `DUPLICATE_DISTANCE=0.05` -- Vector distance below which a memory is considered a duplicate. Set to `0` to disable dedup.
 
 ---
 
@@ -90,7 +135,7 @@ Background worker: saves new user messages into Weaviate (embedding -> object)
 
 Prereqs:
 
-* Go 1.20+
+* Go 1.24+
 * Docker & Docker Compose
 
 1. Copy repo and set module path (or `go mod init github.com/yourname/memcortex`).
@@ -133,19 +178,22 @@ The first request will save the memory asynchronously. Later requests will retri
 
 ```
 memcortex/
-├─ cmd/server/main.go          # App entry point
+├─ cmd/server/main.go              # App entry point
 ├─ internal/
+│  ├─ classifier/
+│  │  ├─ classifier.go             # Event classifier (heuristic scoring + penalties)
+│  │  └─ classifier_test.go        # Classifier unit tests
 │  ├─ embedder/
-│  │  └─ ollama.go             # Contains OpenAI Embedder Logic (for text-embedding-3-small)
+│  │  └─ ollama.go                 # Ollama embedding client
 │  ├─ handlers/
-│  │  └─ chat.go               # Chat endpoint handler
+│  │  └─ chat.go                   # Chat endpoint handler
 │  ├─ memory/
-│  │  ├─ manager.go            # High-level RAG orchestration
-│  │  ├─ queue.go              
-│  │  └─ store.go              # Weaviate storage wrapper
+│  │  ├─ manager.go                # RAG orchestration, classification gate, duplicate detection
+│  │  ├─ queue.go                  # Embedding queue with worker pool
+│  │  └─ store.go                  # Weaviate storage wrapper
 │  └─ middleware/
-│     └─ memory_middleware.go  # Context injection middleware
-├─ .env.example                      # Environment file
+│     └─ memory_middleware.go      # Context injection middleware
+├─ .env.example
 ├─ docker-compose.yml
 ├─ Dockerfile
 ├─ Dockerfile.ollama
@@ -162,8 +210,10 @@ EMBEDDING_MODEL=nomic-embed-text
 EMBEDDING_DIM=768
 SERVER_ADDR=:8080
 OLLAMA_ADDR=11434
-MAX_MEMORY_DISTANCE=0.5 // This describes the vector search distance 
+MAX_MEMORY_DISTANCE=0.5       # Vector search distance threshold for retrieval
 TOP_K_MEMORIES=10
+MIN_EVENT_WEIGHT=0.3           # Minimum classifier weight to persist a memory (0 = save everything)
+DUPLICATE_DISTANCE=0.05        # Max vector distance to consider a memory a duplicate (0 = disable)
 ```
 
 ---

@@ -18,6 +18,7 @@ type Memory struct {
 	ID        string    `json:"id"`
 	Text      string    `json:"text"`
 	Timestamp time.Time `json:"timestamp"`
+	Distance  float64   `json:"distance,omitempty"`
 }
 
 type Store struct {
@@ -54,7 +55,7 @@ func NewStore(class string, dim int, host string) (*Store, error) {
 // ---------------------------
 // Save Memory
 // ---------------------------
-func (s *Store) Save(ctx context.Context, userID, text string, embedding []float32) (string, error) {
+func (s *Store) Save(ctx context.Context, userID, text string, embedding []float32, eventType string, weight float64, ttlDays int) (string, error) {
 	if len(embedding) != s.Dim {
 		return "", fmt.Errorf("embedding dimension mismatch")
 	}
@@ -62,10 +63,13 @@ func (s *Store) Save(ctx context.Context, userID, text string, embedding []float
 	id := uuid.New().String()
 
 	data := map[string]any{
-		"user_id":   userID,
-		"text":      text,
-		"timestamp": time.Now().Format(time.RFC3339),
-		"embedding": embedding,
+		"user_id":    userID,
+		"text":       text,
+		"timestamp":  time.Now().Format(time.RFC3339),
+		"embedding":  embedding,
+		"event_type": eventType,
+		"weight":     weight,
+		"ttl_days":   ttlDays,
 	}
 
 	_, err := s.Client.Data().
@@ -163,6 +167,9 @@ func (s *Store) Search(ctx context.Context, queryEmbedding []float64, userID str
 		if add, ok := obj["_additional"].(map[string]interface{}); ok {
 			if id, ok := add["id"].(string); ok {
 				mem.ID = id
+			}
+			if dist, ok := add["distance"].(float64); ok {
+				mem.Distance = dist
 			}
 		}
 

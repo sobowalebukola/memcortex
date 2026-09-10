@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/sobowalebukola/memcortex/internal/classifier"
 	ollama "github.com/sobowalebukola/memcortex/internal/embedder"
 	"github.com/sobowalebukola/memcortex/internal/handlers"
 	"github.com/sobowalebukola/memcortex/internal/memory"
@@ -41,8 +42,11 @@ func main() {
 		log.Fatalf("failed to create memory store: %v", err)
 	}
 	emb := ollama.NewEmbeddingClient(os.Getenv("EMBEDDING_MODEL"))
+	cls := classifier.New()
 
-	m := memory.NewManager(store, emb)
+	m := memory.NewManager(store, emb, cls)
+
+	log.Printf("Event classifier enabled (min_weight=%.2f)", cls.MinWeight)
 
 	log.Println("MemCortex initialized successfully!")
 

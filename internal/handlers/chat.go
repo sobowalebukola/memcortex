@@ -43,13 +43,15 @@ func (h *ChatHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	response := req.Message
 
-	if err := h.Manager.Save(r.Context(), userID, req.Message); err != nil {
+	saved, err := h.Manager.Save(r.Context(), userID, req.Message)
+	if err != nil {
 		log.Printf("Failed to save message for user %s: %v", userID, err)
 		http.Error(w, "failed to save message", http.StatusInternalServerError)
 		return
 	}
-
-	log.Printf("Saved message for user %s: %s", userID, req.Message)
+	if saved {
+		log.Printf("Saved message for user %s: %s", userID, req.Message)
+	}
 	out := ChatResp{
 		Response: response,
 		Memories: memories,
