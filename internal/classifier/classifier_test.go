@@ -1,19 +1,18 @@
 package classifier
 
 import (
-	"os"
 	"testing"
 )
 
-func newTestClassifier() *Classifier {
-	os.Setenv("MIN_EVENT_WEIGHT", "0.3")
+func newTestClassifier(t *testing.T) *Classifier {
+	t.Setenv("MIN_EVENT_WEIGHT", "0.3")
 	return New()
 }
 
 // --- Trivial messages should always be skipped ---
 
 func TestClassify_Trivial(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	cases := []string{
 		"ok", "OK", "Ok.", "okay", "sure", "yes", "no",
 		"yeah", "nah", "yep", "nope",
@@ -42,7 +41,7 @@ func TestClassify_Trivial(t *testing.T) {
 // --- Each event type should be correctly identified ---
 
 func TestClassify_Preference(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	cases := []string{
 		"I prefer dark mode for all my editors",
 		"I like using Vim for Go development",
@@ -69,7 +68,7 @@ func TestClassify_Preference(t *testing.T) {
 }
 
 func TestClassify_Profile(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	cases := []string{
 		"My name is Alex and I work at Google",
 		"I'm a senior backend engineer",
@@ -95,7 +94,7 @@ func TestClassify_Profile(t *testing.T) {
 }
 
 func TestClassify_Correction(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	cases := []string{
 		"Actually my role is backend engineer, not frontend",
 		"I meant Python, not JavaScript",
@@ -116,7 +115,7 @@ func TestClassify_Correction(t *testing.T) {
 }
 
 func TestClassify_Goal(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	cases := []string{
 		"Remind me to study Rust this month",
 		"I want to learn Kubernetes by next quarter",
@@ -141,7 +140,7 @@ func TestClassify_Goal(t *testing.T) {
 }
 
 func TestClassify_Achievement(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	cases := []string{
 		"I shipped the new payment service last week",
 		"I got promoted to Staff Engineer",
@@ -167,7 +166,7 @@ func TestClassify_Achievement(t *testing.T) {
 // --- Negative signals should reduce weight ---
 
 func TestClassify_QuestionPenalty(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 
 	// A direct preference statement should have full weight.
 	statement := c.Classify("I prefer dark mode for all my code editors")
@@ -181,7 +180,7 @@ func TestClassify_QuestionPenalty(t *testing.T) {
 }
 
 func TestClassify_ThirdPersonPenalty(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 
 	// Third-person without first-person should be heavily penalized.
 	r := c.Classify("He works at Google as a senior engineer")
@@ -197,7 +196,7 @@ func TestClassify_ThirdPersonPenalty(t *testing.T) {
 }
 
 func TestClassify_NegationPenalty(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 
 	positive := c.Classify("I prefer using dark mode in all editors")
 	negated := c.Classify("I don't prefer using dark mode in any editors")
@@ -211,7 +210,7 @@ func TestClassify_NegationPenalty(t *testing.T) {
 // --- General messages: length-based scoring ---
 
 func TestClassify_GeneralShort_Skipped(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	r := c.Classify("the weather is nice today")
 	if r.ShouldSave {
 		t.Errorf("Short general message should be skipped, got save (weight=%.2f)", r.Weight)
@@ -222,7 +221,7 @@ func TestClassify_GeneralShort_Skipped(t *testing.T) {
 }
 
 func TestClassify_GeneralLong_Saved(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	long := "We had a detailed architecture review today and decided to move the payment " +
 		"processing pipeline from a monolith to a set of microservices using gRPC for " +
 		"inter-service communication and Kafka for event streaming"
@@ -238,7 +237,7 @@ func TestClassify_GeneralLong_Saved(t *testing.T) {
 // --- Boundary: highest-weight rule wins when multiple match ---
 
 func TestClassify_HighestWeightWins(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	// Contains both correction pattern ("actually my") and profile pattern ("my name is").
 	// Correction has higher baseWeight (0.95) so it should win.
 	r := c.Classify("Actually my name is not Bob, it's Alex")
@@ -250,8 +249,8 @@ func TestClassify_HighestWeightWins(t *testing.T) {
 // --- MinWeight threshold ---
 
 func TestClassify_CustomMinWeight(t *testing.T) {
-	os.Setenv("MIN_EVENT_WEIGHT", "0.99")
-	defer os.Setenv("MIN_EVENT_WEIGHT", "0.3")
+	t.Setenv("MIN_EVENT_WEIGHT", "0.99")
+	defer t.Setenv("MIN_EVENT_WEIGHT", "0.3")
 
 	c := New()
 	// Even a strong signal shouldn't pass a very high threshold.
@@ -265,7 +264,7 @@ func TestClassify_CustomMinWeight(t *testing.T) {
 // --- Edge cases ---
 
 func TestClassify_EmptyString(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	r := c.Classify("")
 	if r.ShouldSave {
 		t.Errorf("Empty string should be skipped")
@@ -273,7 +272,7 @@ func TestClassify_EmptyString(t *testing.T) {
 }
 
 func TestClassify_WhitespaceOnly(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	r := c.Classify("   \t  \n  ")
 	if r.ShouldSave {
 		t.Errorf("Whitespace-only should be skipped")
@@ -281,7 +280,7 @@ func TestClassify_WhitespaceOnly(t *testing.T) {
 }
 
 func TestClassify_CaseInsensitive(t *testing.T) {
-	c := newTestClassifier()
+	c := newTestClassifier(t)
 	r := c.Classify("MY NAME IS ALEX AND I WORK AT GOOGLE")
 	if !r.ShouldSave {
 		t.Errorf("Classification should be case-insensitive, got skip (weight=%.2f)", r.Weight)
